@@ -1,64 +1,33 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+<p align="center"><a href="https://kubernetes.io/pt-br/" target="_blank"><img src="https://miro.medium.com/max/1200/1*fe7IqPpDckaVjjysqq8jhg.png" width="400"></a></p>
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Requerimentos necessário
+- Kubectl;
+- Minikube;
+- Docker.
 
-## About Laravel
+# Comandos para executar e explicação
+Inicialmente vamos executar ```minikube start``` para iniciar configurações padrões do *minikube* (ferramenta para virtualizar os *clusters* dentro da máquina local). E depois ```minikube dashboard``` para termos um *dashboard* de controle para verificar o que está acontecendo dentro do *cluster* também é possível verificar tudo por linha de comando.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Partindo para as ferramentas do *Kubernetes* vamos começar com o comando ```kubectl apply -f demo-kubernetes-deploment.yaml```. Com isso vamos ter um *deployment* de apenas um *POD* que está configurado na chave *replicas*.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Após criarmos um *deployment* ainda não vamos conseguir acessar o *cluster* pois não o expomos.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Para isso vamos rodar o seguinte comando ```kubectl expose deployment demo-kubernetes-deployment --type=LoadBalancer --port=8000```. Vamos usar o valor *LoadBalancer* no parâmetro para depois escalarmos nossos *PODs* e termos o balanceamento entre eles.
 
-## Learning Laravel
+Com isso ainda não será expostos um acesso externo, por padrão localmente rodando o *cluster* não  temos suporte para tipo *LoadBalancer*, porém com o *minikube* podemos executar o comando ```minikube tunnel```, este comando irá pegar todos os *services* exposto e vai redirecionar os *IPs* do *cluster* para um *ip* externo acessível.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Se executarmos ```kubectl describe demo-kubernetes``` vamos perceber que terá uma chave chamada *Endpoints* essa chave representa o *IP* de cada *PODs* construído dentro do *cluster*. E isso também é o host que vamos usar para rodar a aplicação do Laravel dentro do *POD*.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Então, se entramos no *POD* com o comando ```kubectl exec --stdin --tty nome-do-meu-pod -- /bin/bash``` e executarmos ```php artisan serve --host=host-do-endpoint-que-vimos-anteriormente```. Agora com a aplicação rodando, nós podemos pegar o *IP* externo do nosso serviço exposto e acessar no *browser* e será possível ver a aplicação rodando.
 
-## Laravel Sponsors
+# Escalar
+Para escalarmos, vamos precisar rodar o seguinte comando ```kubectl scale deployments/demo-kubernetes- --replicas=2``` (fique a vontade de mudar a quantidade de réplica). Isso vai criar mais *PODs* e como já definimos o nosso serviço como *LoadBalancer* o balanceamento entre os *PODs* já irá ocorrer entre eles. Porém, vamos ter que entrar novamente no novo *POD* e rodar o servidor com o comando do Laravel com o host do novo *POD*.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+# Env
+Em cada *POD* há um arquivo *.env* altere o valor (reinicie o servidor) de cada um e veja o balancemanto acontecer.
 
-### Premium Partners
+# Conclusão
+Isso é apenas um estudo inicial sobre *Kubernetes* ainda falta fazer algumas tarefas como:
+- [ ] Rodar o servidor ao criar o *POD*;
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[CMS Max](https://www.cmsmax.com/)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Caso perceba alguma explicação errada, fique a vontade para enviar uma *PR*. Caso queira aprimorar em geral o que foi feito até agora, fique a vontate para mudar :smile:.
